@@ -31,13 +31,12 @@ RIGHT_PANE = SCREEN_SIZE - PADDING - LEFT_PANE
 
 RIGHT_PANE_START = LEFT_PANE + PADDING
 
-beer = get_batch_info("z6G844ONYxUVUg2s4PJpUpMh8Tv4Xb")
-print("BEER ")
-print(beer)
-
 # Screen = 296x128
 
 def display_beer_info(beer):
+    print("Peparing to display beer ")
+    print(beer)
+
     display.set_font("bitmap8")
     display.set_pen(0)
     display.rectangle(48, 0, WIDTH, 32)
@@ -47,7 +46,7 @@ def display_beer_info(beer):
     jpeg.decode(0, 0)
 
     display.set_pen(15)
-    beer_label = "System Shock"
+    beer_label = beer.get("name", "Unnamed beer")
 
     title_x_offset = 52
     display.text(beer_label, title_x_offset, 8, WIDTH, TEXT_SIZE * 2)
@@ -59,51 +58,33 @@ def display_beer_info(beer):
 
     display.set_font("bitmap6")
 
-    display.text("West Coast IPA", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
+    display.text(beer.get("style", "No Style"), content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
     current_y += LINE_HEIGHT
 
-    display.text("7.1% abv.", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
+    display.text(str(beer.get("abv", 0)) + "%", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
     current_y += LINE_HEIGHT
 
-    display.text("60 IBU", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
+    display.text(str(beer.get("ibu", 0)) + "IBU", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
     current_y += LINE_HEIGHT * 2
 
 
     display.set_font("bitmap8")
     display.set_thickness(4)
 
-    display.text("Amarillo, Cascade, Simcoe, Loral", content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
+    display.text(", ".join(beer.get("hops", [])), content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
     current_y += LINE_HEIGHT
 
-    display.text("Matsu Brewing", content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
+    display.text(beer.get("brewer", ""), content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
     current_y += LINE_HEIGHT
 
-    batches = get_batches()
-    print(batches['batches'][0]['brewer'])
+    display.update()
 
-# display.text("info", WIDTH - display.measure_text("help", 0.4) - 4, 4, WIDTH, 1)
+    print("[beer.py]: Display updated")
 
-# display.set_pen(0)
 
-# y = 32 + int(LINE_HEIGHT / 2)
+beer = get_batch_info("z6G844ONYxUVUg2s4PJpUpMh8Tv4Xb")
 
-# display.text("Trying to get shit to work", 5, y, WIDTH, TEXT_SIZE)
-# y += LINE_HEIGHT
-# display.text("Dual-core RP2040, 133MHz, 264KB RAM", 5, y, WIDTH, TEXT_SIZE)
-# y += LINE_HEIGHT
-# display.text("2MB Flash (1MB OS, 1MB Storage)", 5, y, WIDTH, TEXT_SIZE)
-# y += LINE_HEIGHT
-# display.text("296x128 pixel Black/White e-Ink", 5, y, WIDTH, TEXT_SIZE)
-# y += LINE_HEIGHT
-# y += LINE_HEIGHT
-
-# display.text("For more info:", 5, y, WIDTH, TEXT_SIZE)
-# y += LINE_HEIGHT
-# display.text("https://pimoroni.com/badger2040", 5, y, WIDTH, TEXT_SIZE)
-
-display.update()
-
-print("[beer.py]: Display updated")
+display_beer_info(beer)
 # Call halt in a loop, on battery this switches off power.
 # On USB, the app will exit when A+C is pressed because the launcher picks that up.
 while True:
