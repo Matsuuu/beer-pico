@@ -13,13 +13,12 @@ TEXT_SIZE = 1
 LINE_HEIGHT = 15
 
 display = badger2040.Badger2040()
-display.led(128)
-
-jpeg = jpegdec.JPEG(display.display)
-
 # Clear to white
 display.set_pen(15)
 display.clear()
+
+jpeg = jpegdec.JPEG(display.display)
+
 
 # 15 = White
 # 0 = Black
