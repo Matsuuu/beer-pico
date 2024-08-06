@@ -9,7 +9,6 @@ def clear_screen(display):
     display.set_pen(0)
 
 def test_network():
-    net = network.WLAN(network.STA_IF).ifconfig()
-    if net is None:
+    if not network.WLAN(network.STA_IF).isconnected() :
         display = badger2040.Badger2040()
         display.connect()
