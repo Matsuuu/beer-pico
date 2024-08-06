@@ -38,8 +38,6 @@ def get_batch_info(batch_id):
 
     json_data = r.json()
 
-    print(json_data)
-
     return {
         "id": json_data["_id"],
         "brewer": json_data["brewer"],

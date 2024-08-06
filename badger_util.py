@@ -1,6 +1,6 @@
 import badger2040
-import urequests
 import network
+import time
 
 def clear_screen(display):
     # Clear to white
@@ -12,3 +12,7 @@ def test_network():
     if not network.WLAN(network.STA_IF).isconnected() :
         display = badger2040.Badger2040()
         display.connect()
+
+def wait_for_user_to_release_buttons(display):
+    while display.pressed_any():
+        time.sleep(0.01)

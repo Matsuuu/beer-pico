@@ -1,8 +1,10 @@
+from apps.actions import Actions
 from service.brewfather import get_batches
 import badger2040
 from badger2040 import HEIGHT, WIDTH
+import time
 
-from badger_util import clear_screen
+from badger_util import clear_screen, wait_for_user_to_release_buttons
 
 
 display = badger2040.Badger2040()
@@ -18,10 +20,14 @@ class BeerListing():
     current_selected_item = 0;
     items_per_page = 7
 
-    def __init__(self):
+    def __init__(self, manager):
+        self.manager = manager
+
+    def render(self):
         clear_screen(display)
         self.batches = get_batches(self.items_per_page)
         self.list_batches()
+        return self.main_loop()
 
     def list_batches(self):
         clear_screen(display)
@@ -52,8 +58,32 @@ class BeerListing():
 
         display.update()
 
+
+    def main_loop(self):
+        action = None
+        while action is None:
+            # Sometimes a button press or hold will keep the system
+            # powered *through* HALT, so latch the power back on.
+            display.keepalive()
+
+            if display.pressed(badger2040.BUTTON_C):
+                action = "select_item"
+                wait_for_user_to_release_buttons(display)
+                break
+            if display.pressed(badger2040.BUTTON_UP):
+                self.previous_item()
+            if display.pressed(badger2040.BUTTON_DOWN):
+                self.next_item()
+
+            display.halt()
+
+        print("Loop escaped")
+
+        if action is "select_item":
+            return self.select_item()
+
+
     def previous_item(self):
-        print("previous")
         if self.current_selected_item == 0 and self.current_page == 0:
             return
         if self.current_selected_item == 0 and self.current_page > 0:
@@ -66,7 +96,6 @@ class BeerListing():
 
 
     def next_item(self):
-        print("next")
         if self.current_selected_item == self.items_per_page:
             print("Last item on page. TODO: Handle")
         self.current_selected_item += 1
@@ -74,41 +103,9 @@ class BeerListing():
         self.list_batches()
         display.set_update_speed(badger2040.UPDATE_FAST)
 
+    def select_item(self):
+        state_file = open("/state/selected_beer", "w")
+        state_file.write(self.batches[(self.current_page + 1) * self.current_selected_item]["_id"])
+        state_file.close()
+        return Actions.GO_TO_BEER_DISPLAY
 
-listing = BeerListing()
-
-def button(pin):
-    global changed
-    changed = True
-
-    # if pin == badger2040.BUTTON_A:
-        #launch_example(0)
-    # if pin == badger2040.BUTTON_B:
-        #launch_example(1)
-    # if pin == badger2040.BUTTON_C:
-        #launch_example(2)
-    if pin == badger2040.BUTTON_UP:
-        listing.previous_item()
-    if pin == badger2040.BUTTON_DOWN:
-        listing.next_item()
-
-
-
-while True:
-    # Sometimes a button press or hold will keep the system
-    # powered *through* HALT, so latch the power back on.
-    display.keepalive()
-
-    if display.pressed(badger2040.BUTTON_A):
-        button(badger2040.BUTTON_A)
-    if display.pressed(badger2040.BUTTON_B):
-        button(badger2040.BUTTON_B)
-    if display.pressed(badger2040.BUTTON_C):
-        button(badger2040.BUTTON_C)
-
-    if display.pressed(badger2040.BUTTON_UP):
-        button(badger2040.BUTTON_UP)
-    if display.pressed(badger2040.BUTTON_DOWN):
-        button(badger2040.BUTTON_DOWN)
-
-    display.halt()

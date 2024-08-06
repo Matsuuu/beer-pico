@@ -1,27 +1,16 @@
 import badger2040
 import jpegdec
-import os
 from badger2040 import WIDTH
-import urequests
-import json
+from apps.actions import Actions
+from badger_util import clear_screen, wait_for_user_to_release_buttons
+from service.brewfather import get_batch_info
 
-from service.brewfather import get_batch_info, get_batches
-
-print("Initializing beer.py")
-
-TEXT_SIZE = 1
 LINE_HEIGHT = 15
 
 display = badger2040.Badger2040()
-# Clear to white
-display.set_pen(15)
-display.clear()
+clear_screen(display)
 
 jpeg = jpegdec.JPEG(display.display)
-
-
-# 15 = White
-# 0 = Black
 
 SCREEN_SIZE = 296
 LEFT_PANE = 80
@@ -32,61 +21,76 @@ RIGHT_PANE_START = LEFT_PANE + PADDING
 
 # Screen = 296x128
 
-def display_beer_info(beer):
-    print("Peparing to display beer ")
-    print(beer)
+class BeerDisplay:
 
-    display.set_font("bitmap8")
-    display.set_pen(0)
-    display.rectangle(48, 0, WIDTH, 32)
+    def __init__(self, manager):
+        self.manager = manager
 
-    icon = "/apps/icon-beer.jpg"
-    jpeg.open_file(icon)
-    jpeg.decode(0, 0)
+    def show_beer(self, beer_id):
+        beer = get_batch_info(beer_id)
+        return self.display_beer_info(beer)
 
-    display.set_pen(15)
-    beer_label = beer.get("name", "Unnamed beer")
+    def display_beer_info(self, beer):
+        clear_screen(display)
 
-    title_x_offset = 52
-    display.text(beer_label, title_x_offset, 8, WIDTH, TEXT_SIZE * 2)
+        display.set_font("bitmap8")
+        display.set_pen(0)
+        display.rectangle(48, 0, WIDTH, 32)
 
-    display.set_pen(0)
+        icon = "/apps/icon-beer.jpg"
+        jpeg.open_file(icon)
+        jpeg.decode(0, 0)
 
-    content_x_offset = 60
-    current_y = 40
+        display.set_pen(15)
+        title_x_offset = 52
 
-    display.set_font("bitmap6")
+        beer_label = beer.get("name", "Unnamed beer")
+        beer_label_size = display.measure_text(beer_label, 2)
+        title_holder_size = WIDTH - title_x_offset
 
-    display.text(beer.get("style", "No Style"), content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
-    current_y += LINE_HEIGHT
+        label_scale = 2 if beer_label_size < title_holder_size else 1
 
-    display.text(str(beer.get("abv", 0)) + "%", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
-    current_y += LINE_HEIGHT
+        display.text(beer_label, title_x_offset, 8, title_holder_size - 5, label_scale)
 
-    display.text(str(beer.get("ibu", 0)) + "IBU", content_x_offset, current_y, WIDTH, TEXT_SIZE * 2)
-    current_y += LINE_HEIGHT * 2
+        display.set_pen(0)
+
+        content_x_offset = 60
+        current_y = 40
+
+        display.set_font("bitmap6")
+
+        beer_big_info = beer.get("style", "No Style") + "\n" \
+        + str(beer.get("abv", 0)) + "%\n" \
+        + str(beer.get("ibu", 0)) + "IBU"
+
+        display.text(beer_big_info, content_x_offset, current_y, WIDTH, 2)
+
+        current_y += LINE_HEIGHT * 4
+
+        display.set_font("bitmap8")
+        display.set_thickness(4)
+
+        display.text(", ".join(beer.get("hops", [])), content_x_offset, current_y, WIDTH - content_x_offset, 1)
+        current_y += LINE_HEIGHT
+
+        display.text(beer.get("brewer", ""), content_x_offset, current_y, WIDTH - content_x_offset, 1)
+        current_y += LINE_HEIGHT
+
+        display.set_update_speed(badger2040.UPDATE_NORMAL)
+        display.update()
+        display.set_update_speed(badger2040.UPDATE_FAST)
 
 
-    display.set_font("bitmap8")
-    display.set_thickness(4)
+        while True:
+            # Sometimes a button press or hold will keep the system
+            # powered *through* HALT, so latch the power back on.
+            display.keepalive()
 
-    display.text(", ".join(beer.get("hops", [])), content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
-    current_y += LINE_HEIGHT
+            if display.pressed_any():
+                print("Something pressed")
+                wait_for_user_to_release_buttons(display)
+                break
 
-    display.text(beer.get("brewer", ""), content_x_offset, current_y, WIDTH - content_x_offset, TEXT_SIZE)
-    current_y += LINE_HEIGHT
+            display.halt()
 
-    display.update()
-
-    print("[beer.py]: Display updated")
-
-
-beer = get_batch_info("z6G844ONYxUVUg2s4PJpUpMh8Tv4Xb")
-
-display_beer_info(beer)
-# Call halt in a loop, on battery this switches off power.
-# On USB, the app will exit when A+C is pressed because the launcher picks that up.
-while True:
-    display.keepalive()
-    display.halt()
-
+        return Actions.GO_TO_LISTING
